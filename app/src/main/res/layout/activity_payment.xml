@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D0D0D">
+
+    <!-- LOADING STATE -->
+    <LinearLayout
+        android:id="@+id/layout_loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="visible"
+        android:padding="32dp">
+        <ProgressBar
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:indeterminateTint="#FF6B35"
+            android:layout_marginBottom="24dp"/>
+        <TextView
+            android:id="@+id/tv_loading_msg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fetching account details…"
+            android:textColor="#CCCCCC"
+            android:gravity="center"
+            android:textSize="16sp"/>
+    </LinearLayout>
+
+    <!-- SUCCESS STATE -->
+    <LinearLayout
+        android:id="@+id/layout_success"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:padding="32dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓"
+            android:textColor="#2ECC71"
+            android:textSize="80sp"
+            android:layout_marginBottom="24dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Payment Successful"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:layout_marginBottom="16dp"/>
+        <TextView
+            android:id="@+id/tv_success_msg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#AAAAAA"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.5"/>
+    </LinearLayout>
+
+    <!-- MAIN CONTENT -->
+    <ScrollView
+        android:id="@+id/layout_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- DEMO BANNER -->
+            <TextView
+                android:id="@+id/tv_demo_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️  DEMO MODE — Add API keys in NuovoPayClient.java to go live"
+                android:textColor="#FFF3CD"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="10dp"
+                android:background="#3A2D00"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"/>
+
+            <!-- HEADER -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="20dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="NuovoPay"
+                    android:textColor="#FF6B35"
+                    android:textSize="22sp"
+                    android:letterSpacing="0.05"/>
+                <TextView
+                    android:id="@+id/tv_loan_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ACTIVE"
+                    android:textColor="#2ECC71"
+                    android:textSize="11sp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:background="@drawable/badge_active"/>
+            </LinearLayout>
+
+            <!-- CUSTOMER CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CUSTOMER"
+                    android:textColor="#666666"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="6dp"/>
+                <TextView
+                    android:id="@+id/tv_customer_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:layout_marginBottom="4dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tv_customer_id"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="ID: —"
+                        android:textColor="#888888"
+                        android:textSize="13sp"/>
+                    <TextView
+                        android:id="@+id/tv_device_model"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="—"
+                        android:textColor="#FF6B35"
+                        android:textSize="13sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- LOAN PROGRESS CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="18dp"
+                android:layout_marginBottom="14dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LOAN PROGRESS"
+                    android:textColor="#666666"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="14dp"/>
+
+                <!-- Amounts row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total Loan" android:textColor="#666666" android:textSize="11sp"/>
+                        <TextView android:id="@+id/tv_loan_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="#FFFFFF" android:textSize="16sp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Paid" android:textColor="#666666" android:textSize="11sp"/>
+                        <TextView android:id="@+id/tv_amount_paid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="#2ECC71" android:textSize="16sp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="end">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Due Now" android:textColor="#666666" android:textSize="11sp"/>
+                        <TextView android:id="@+id/tv_amount_due" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="#FF6B35" android:textSize="16sp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Progress bar -->
+                <ProgressBar
+                    android:id="@+id/progress_repayment"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="#FF6B35"
+                    android:progressBackgroundTint="#2A2A2A"
+                    android:layout_marginBottom="8dp"/>
+                <TextView
+                    android:id="@+id/tv_progress_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#777777"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Days row -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <TextView android:id="@+id/tv_days_remaining" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="—" android:textColor="#AAAAAA" android:textSize="13sp"/>
+                    <TextView android:id="@+id/tv_next_due_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="#AAAAAA" android:textSize="13sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- PAYMENT FORM CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="18dp"
+                android:layout_marginBottom="20dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MAKE PAYMENT"
+                    android:textColor="#666666"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="14dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Amount (KES)" android:textColor="#999999" android:textSize="12sp" android:layout_marginBottom="4dp"/>
+                <EditText
+                    android:id="@+id/et_payment_amount"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="numberDecimal"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#555555"
+                    android:hint="Enter amount"
+                    android:background="@drawable/input_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="14dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="M-Pesa / Phone Number" android:textColor="#999999" android:textSize="12sp" android:layout_marginBottom="4dp"/>
+                <EditText
+                    android:id="@+id/et_phone_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="phone"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#555555"
+                    android:hint="+254 7XX XXX XXX"
+                    android:background="@drawable/input_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="14dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Payment Method" android:textColor="#999999" android:textSize="12sp" android:layout_marginBottom="4dp"/>
+                <Spinner
+                    android:id="@+id/spinner_payment_method"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_bg"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"/>
+            </LinearLayout>
+
+            <!-- PAY NOW BUTTON -->
+            <Button
+                android:id="@+id/btn_pay_now"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="PAY NOW &amp; UNLOCK DEVICE"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:letterSpacing="0.08"
+                android:background="@drawable/btn_pay_bg"
+                android:layout_marginBottom="14dp"/>
+
+            <!-- FOOTER -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔒  Payments processed securely via NuovoPay MDM.\nDevice unlocks automatically after payment is confirmed."
+                android:textColor="#555555"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.5"
+                android:layout_marginBottom="32dp"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>
