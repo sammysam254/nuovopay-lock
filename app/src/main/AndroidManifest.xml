@@ -2,24 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vertext.nuovopaylock">
 
-    <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
-    <!-- Device Admin (required for NuovoPay MDM lock integration) -->
-    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN"/>
-
-    <!-- Read IMEI to identify device with NuovoPay -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-
-    <!-- Keep screen on during payment -->
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-
-    <!-- Boot receiver to re-show lock screen after restart -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-
-    <!-- Kiosk / lock-task mode (requires Device Owner provisioning via NuovoPay) -->
-    <uses-permission android:name="android.permission.REORDER_TASKS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:allowBackup="false"
@@ -27,7 +14,6 @@
         android:theme="@style/AppTheme"
         android:hardwareAccelerated="true">
 
-        <!-- ── Main Payment Screen ──────────────────────────── -->
         <activity
             android:name=".ui.PaymentActivity"
             android:exported="true"
@@ -36,42 +22,25 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:windowSoftInputMode="adjustResize">
-
-            <!-- App launcher intent (for testing) -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
-            <!-- NuovoPay MDM unlock deeplink -->
-            <intent-filter>
-                <action android:name="com.nuovopay.action.UNLOCK_DEVICE"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-
         </activity>
 
-        <!-- ── Device Admin Receiver ────────────────────────── -->
         <receiver
             android:name=".admin.LockDeviceAdminReceiver"
             android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
-
             <meta-data
                 android:name="android.app.device_admin"
                 android:resource="@xml/device_admin"/>
-
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
                 <action android:name="android.app.action.DEVICE_ADMIN_DISABLED"/>
-                <action android:name="android.app.action.ACTION_DEVICE_POLICY_MANAGER_STATE_CHANGED"/>
-                <!-- NuovoPay sends this broadcast when payment is confirmed on their end -->
-                <action android:name="com.nuovopay.action.PAYMENT_CONFIRMED"/>
             </intent-filter>
-
         </receiver>
 
-        <!-- ── Boot Receiver (re-lock after reboot) ──────────── -->
         <receiver
             android:name=".admin.BootReceiver"
             android:exported="false">
@@ -81,5 +50,4 @@
         </receiver>
 
     </application>
-
 </manifest>
