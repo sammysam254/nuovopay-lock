@@ -1,17 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Device Admin policies this app uses.
-    NuovoPay MDM requires LOCK_TASK, WIPE_DATA, and screen lock capabilities.
--->
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
-        <!-- Required for NuovoPay device locking -->
         <force-lock/>
-        <!-- Used when loan is severely overdue -->
-        <wipe-data/>
-        <!-- Used to enforce screen lock -->
         <reset-password/>
-        <!-- Used to set lock screen message with payment info -->
         <watch-login/>
     </uses-policies>
 </device-admin>

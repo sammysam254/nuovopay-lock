@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">NuovoPay Lock</string>
     <string name="device_admin_label">NuovoPay Device Manager</string>
-    <string name="device_admin_description">Required for device financing and loan repayment management via NuovoPay MDM.</string>
+    <string name="device_admin_description">Allows NuovoPay to lock this device when loan payments are overdue, and unlock it automatically after payment is confirmed.</string>
 </resources>

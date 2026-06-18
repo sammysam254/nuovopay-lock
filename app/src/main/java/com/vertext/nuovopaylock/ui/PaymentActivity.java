@@ -11,7 +11,14 @@ import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.*;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,8 +32,8 @@ import com.vertext.nuovopaylock.model.LoanInfo;
 
 public class PaymentActivity extends AppCompatActivity {
 
-    private static final int REQUEST_PERMISSIONS = 100;
-    private static final int REQUEST_DEVICE_ADMIN = 101;
+    private static final int REQ_PERMS = 100;
+    private static final int REQ_ADMIN = 101;
 
     private TextView tvCustomerName, tvCustomerId, tvDeviceModel;
     private TextView tvLoanAmount, tvAmountPaid, tvAmountDue;
@@ -47,60 +54,176 @@ public class PaymentActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        setContentView(R.layout.activity_payment);
-
-        dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        adminComponent = new ComponentName(this, LockDeviceAdminReceiver.class);
-        apiClient = new NuovoPayClient();
-
-        bindViews();
-        setupPaymentMethodSpinner();
-        requestRequiredPermissions();
-
-        btnPayNow.setOnClickListener(v -> handlePayment());
+        try {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            setContentView(R.layout.activity_payment);
+            dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+            adminComponent = new ComponentName(this, LockDeviceAdminReceiver.class);
+            apiClient = new NuovoPayClient();
+            bindViews();
+            setupSpinner();
+            btnPayNow.setOnClickListener(v -> handlePayment());
+            askPhonePermission();
+        } catch (Exception e) {
+            Toast.makeText(this, "Startup error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
-    private void requestRequiredPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_PHONE_STATE},
-                        REQUEST_PERMISSIONS);
+    private void askPhonePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                        != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_PHONE_STATE}, REQ_PERMS);
+        } else {
+            askDeviceAdmin();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] results) {
+        super.onRequestPermissionsResult(code, perms, results);
+        askDeviceAdmin();
+    }
+
+    private void askDeviceAdmin() {
+        try {
+            if (dpm != null && !dpm.isAdminActive(adminComponent)) {
+                Intent i = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                i.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
+                i.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                        "NuovoPay needs Device Admin to lock this device on missed payments and unlock after payment.");
+                startActivityForResult(i, REQ_ADMIN);
             } else {
-                onPermissionsReady();
+                loadData();
             }
-        } else {
-            onPermissionsReady();
+        } catch (Exception e) {
+            loadData();
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        onPermissionsReady();
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == REQ_ADMIN) loadData();
     }
 
-    private void onPermissionsReady() {
-        if (dpm != null && !dpm.isAdminActive(adminComponent)) {
-            Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                    "NuovoPay needs device admin to lock this device when payments are overdue and unlock it after payment.");
-            startActivityForResult(intent, REQUEST_DEVICE_ADMIN);
-        } else {
-            fetchDeviceInfo();
+    private void loadData() {
+        showLoading("Fetching account details…");
+        String imei = getImei();
+        apiClient.getDeviceInfo(imei, new NuovoPayClient.DeviceInfoCallback() {
+            @Override public void onSuccess(NuovoPayClient.DeviceInfo info) {
+                loanInfo = map(info);
+                fillUI();
+                showContent();
+            }
+            @Override public void onError(String msg) {
+                loanInfo = LoanInfo.demoData();
+                fillUI();
+                showContent();
+            }
+        });
+    }
+
+    private String getImei() {
+        try {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+                if (tm != null) {
+                    String id = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                            ? tm.getImei() : tm.getDeviceId();
+                    if (id != null && !id.isEmpty()) return id;
+                }
+            }
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    private void fillUI() {
+        try {
+            tvDemoBanner.setVisibility(NuovoPayClient.isDemoMode() ? View.VISIBLE : View.GONE);
+            tvCustomerName.setText(loanInfo.customerName);
+            tvCustomerId.setText("ID: " + loanInfo.customerId);
+            tvDeviceModel.setText(loanInfo.deviceModel);
+            tvLoanAmount.setText(fmt(loanInfo.loanAmount));
+            tvAmountPaid.setText(fmt(loanInfo.amountPaid));
+            tvAmountDue.setText(fmt(loanInfo.amountDue));
+            tvDaysRemaining.setText(loanInfo.daysRemaining + " days left");
+            tvNextDueDate.setText("Due: " + loanInfo.nextDueDate);
+            tvLoanStatus.setText(loanInfo.loanStatus);
+            if (loanInfo.isOverdue()) {
+                tvLoanStatus.setBackgroundResource(R.drawable.badge_overdue);
+                tvLoanStatus.setTextColor(0xFFE74C3C);
+            } else if (loanInfo.isCompleted()) {
+                tvLoanStatus.setBackgroundResource(R.drawable.badge_completed);
+                tvLoanStatus.setTextColor(0xFF3498DB);
+            } else {
+                tvLoanStatus.setBackgroundResource(R.drawable.badge_active);
+                tvLoanStatus.setTextColor(0xFF2ECC71);
+            }
+            int pct = (int) (loanInfo.getRepaymentProgress() * 100);
+            progressRepayment.setProgress(pct);
+            tvProgressLabel.setText(pct + "% repaid  ·  "
+                    + fmt(loanInfo.loanAmount - loanInfo.amountPaid) + " remaining");
+            etPaymentAmount.setText(String.valueOf((int) loanInfo.amountDue));
+            if (loanInfo.phoneNumber != null && !loanInfo.phoneNumber.isEmpty())
+                etPhoneNumber.setText(loanInfo.phoneNumber);
+        } catch (Exception e) {
+            Toast.makeText(this, "UI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_DEVICE_ADMIN) {
-            fetchDeviceInfo();
+    private void handlePayment() {
+        try {
+            String amtStr = etPaymentAmount.getText().toString().trim();
+            String phone  = etPhoneNumber.getText().toString().trim();
+            if (amtStr.isEmpty()) { etPaymentAmount.setError("Enter amount"); return; }
+            double amt;
+            try { amt = Double.parseDouble(amtStr); }
+            catch (NumberFormatException e) { etPaymentAmount.setError("Invalid amount"); return; }
+            if (amt <= 0) { etPaymentAmount.setError("Must be > 0"); return; }
+            if (phone.isEmpty()) { etPhoneNumber.setError("Enter phone number"); return; }
+            String method = spinnerPaymentMethod.getSelectedItem().toString();
+            String demoNote = NuovoPayClient.isDemoMode() ? "\n\n⚠️ DEMO MODE — no real payment." : "";
+            new AlertDialog.Builder(this)
+                    .setTitle("Confirm Payment")
+                    .setMessage("Pay " + fmt(amt) + " via " + method + "\nPhone: " + phone + demoNote)
+                    .setPositiveButton("Pay Now", (d, w) -> doPayment(amt, phone, method))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void doPayment(double amt, String phone, String method) {
+        showLoading("Processing payment…");
+        String imei = loanInfo != null ? loanInfo.deviceImei : "";
+        apiClient.submitPayment(imei, amt, phone, method, new NuovoPayClient.PaymentCallback() {
+            @Override public void onSuccess(String txId) {
+                showLoading("Payment confirmed!\nSending unlock signal…");
+                doUnlock(txId);
+            }
+            @Override public void onError(String msg) { showContent(); showError("Payment Failed", msg); }
+        });
+    }
+
+    private void doUnlock(String txId) {
+        String imei = loanInfo != null ? loanInfo.deviceImei : "";
+        apiClient.requestUnlock(imei, txId, new NuovoPayClient.UnlockCallback() {
+            @Override public void onSuccess() {
+                getSharedPreferences("nuovopay_prefs", Context.MODE_PRIVATE)
+                        .edit().putBoolean("device_unlocked", true).apply();
+                try { if (dpm != null && dpm.isAdminActive(adminComponent)) dpm.removeActiveAdmin(adminComponent); }
+                catch (Exception ignored) {}
+                showSuccess("Device unlocked! 🎉\n\nThank you, "
+                        + (loanInfo != null ? loanInfo.customerName : "") + "!\nRef: " + txId);
+            }
+            @Override public void onError(String msg) {
+                showContent(); showError("Unlock Error", "Payment ok but unlock failed.\nRef: " + txId);
+            }
+        });
     }
 
     private void bindViews() {
@@ -127,135 +250,11 @@ public class PaymentActivity extends AppCompatActivity {
         tvSuccessMsg      = findViewById(R.id.tv_success_msg);
     }
 
-    private void setupPaymentMethodSpinner() {
+    private void setupSpinner() {
         String[] methods = {"M-Pesa", "Airtel Money", "Bank Transfer", "Cash (Agent)"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, methods);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerPaymentMethod.setAdapter(adapter);
-    }
-
-    private void fetchDeviceInfo() {
-        showLoading("Fetching account details…");
-        String imei = getDeviceImei();
-        apiClient.getDeviceInfo(imei, new NuovoPayClient.DeviceInfoCallback() {
-            @Override public void onSuccess(NuovoPayClient.DeviceInfo info) {
-                loanInfo = mapToLoanInfo(info);
-                populateUI();
-                showContent();
-            }
-            @Override public void onError(String message) {
-                loanInfo = LoanInfo.demoData();
-                populateUI();
-                showContent();
-            }
-        });
-    }
-
-    private String getDeviceImei() {
-        try {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
-                    == PackageManager.PERMISSION_GRANTED) {
-                TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                if (tm != null) {
-                    String imei = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                            ? tm.getImei() : tm.getDeviceId();
-                    if (imei != null && !imei.isEmpty()) return imei;
-                }
-            }
-        } catch (Exception ignored) {}
-        return "";
-    }
-
-    private void populateUI() {
-        tvDemoBanner.setVisibility(NuovoPayClient.isDemoMode() ? View.VISIBLE : View.GONE);
-        tvCustomerName.setText(loanInfo.customerName);
-        tvCustomerId.setText("ID: " + loanInfo.customerId);
-        tvDeviceModel.setText(loanInfo.deviceModel);
-        tvLoanAmount.setText(formatKES(loanInfo.loanAmount));
-        tvAmountPaid.setText(formatKES(loanInfo.amountPaid));
-        tvAmountDue.setText(formatKES(loanInfo.amountDue));
-        tvDaysRemaining.setText(loanInfo.daysRemaining + " days left");
-        tvNextDueDate.setText("Due: " + loanInfo.nextDueDate);
-        tvLoanStatus.setText(loanInfo.loanStatus);
-
-        if (loanInfo.isOverdue()) {
-            tvLoanStatus.setBackgroundResource(R.drawable.badge_overdue);
-            tvLoanStatus.setTextColor(0xFFE74C3C);
-        } else if (loanInfo.isCompleted()) {
-            tvLoanStatus.setBackgroundResource(R.drawable.badge_completed);
-            tvLoanStatus.setTextColor(0xFF3498DB);
-        } else {
-            tvLoanStatus.setBackgroundResource(R.drawable.badge_active);
-            tvLoanStatus.setTextColor(0xFF2ECC71);
-        }
-
-        int progress = (int) (loanInfo.getRepaymentProgress() * 100);
-        progressRepayment.setProgress(progress);
-        tvProgressLabel.setText(progress + "% repaid  ·  "
-                + formatKES(loanInfo.loanAmount - loanInfo.amountPaid) + " remaining");
-        etPaymentAmount.setText(String.valueOf((int) loanInfo.amountDue));
-        if (loanInfo.phoneNumber != null && !loanInfo.phoneNumber.isEmpty()) {
-            etPhoneNumber.setText(loanInfo.phoneNumber);
-        }
-    }
-
-    private void handlePayment() {
-        String amountStr = etPaymentAmount.getText().toString().trim();
-        String phone = etPhoneNumber.getText().toString().trim();
-        if (amountStr.isEmpty()) { etPaymentAmount.setError("Enter payment amount"); return; }
-        double amount;
-        try { amount = Double.parseDouble(amountStr); }
-        catch (NumberFormatException e) { etPaymentAmount.setError("Invalid amount"); return; }
-        if (amount <= 0) { etPaymentAmount.setError("Amount must be greater than 0"); return; }
-        if (phone.isEmpty()) { etPhoneNumber.setError("Enter M-Pesa / phone number"); return; }
-
-        String method = spinnerPaymentMethod.getSelectedItem().toString();
-        String demoNote = NuovoPayClient.isDemoMode() ? "\n\n⚠️ DEMO MODE — no real payment." : "";
-        new AlertDialog.Builder(this)
-                .setTitle("Confirm Payment")
-                .setMessage("Pay " + formatKES(amount) + " via " + method
-                        + "\nPhone: " + phone + demoNote + "\n\nProceed?")
-                .setPositiveButton("Pay Now", (d, w) -> executePayment(amount, phone, method))
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void executePayment(double amount, String phone, String method) {
-        showLoading("Processing payment…");
-        String imei = loanInfo != null ? loanInfo.deviceImei : "";
-        apiClient.submitPayment(imei, amount, phone, method,
-                new NuovoPayClient.PaymentCallback() {
-                    @Override public void onSuccess(String txId) {
-                        showLoading("Payment confirmed!\nSending unlock signal…");
-                        requestUnlock(txId);
-                    }
-                    @Override public void onError(String message) {
-                        showContent();
-                        showError("Payment Failed", message);
-                    }
-                });
-    }
-
-    private void requestUnlock(String txId) {
-        String imei = loanInfo != null ? loanInfo.deviceImei : "";
-        apiClient.requestUnlock(imei, txId, new NuovoPayClient.UnlockCallback() {
-            @Override public void onSuccess() {
-                getSharedPreferences("nuovopay_prefs", Context.MODE_PRIVATE)
-                        .edit().putBoolean("device_unlocked", true).apply();
-                try {
-                    if (dpm != null && dpm.isAdminActive(adminComponent))
-                        dpm.removeActiveAdmin(adminComponent);
-                } catch (Exception ignored) {}
-                showSuccess("Payment received! Device unlocked.\n\nThank you, "
-                        + (loanInfo != null ? loanInfo.customerName : "") + "! 🎉"
-                        + "\nRef: " + txId);
-            }
-            @Override public void onError(String message) {
-                showContent();
-                showError("Unlock Error", "Payment received but unlock failed.\nRef: " + txId);
-            }
-        });
+        ArrayAdapter<String> a = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, methods);
+        a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerPaymentMethod.setAdapter(a);
     }
 
     private void showLoading(String msg) {
@@ -280,31 +279,22 @@ public class PaymentActivity extends AppCompatActivity {
         tvSuccessMsg.setText(msg);
     }
 
-    private void showError(String title, String msg) {
-        new AlertDialog.Builder(this).setTitle(title).setMessage(msg)
-                .setPositiveButton("OK", null).show();
+    private void showError(String t, String msg) {
+        new AlertDialog.Builder(this).setTitle(t).setMessage(msg).setPositiveButton("OK", null).show();
     }
 
-    private String formatKES(double amount) {
-        return String.format("KES %,.0f", amount);
+    private String fmt(double v) { return String.format("KES %,.0f", v); }
+
+    private LoanInfo map(NuovoPayClient.DeviceInfo i) {
+        LoanInfo l = new LoanInfo();
+        l.customerName = i.customerName; l.customerId = i.customerId;
+        l.deviceImei = i.deviceImei; l.deviceModel = i.deviceModel;
+        l.loanAmount = i.loanAmount; l.amountPaid = i.amountPaid;
+        l.amountDue = i.amountDue; l.loanDurationDays = i.loanDurationDays;
+        l.daysRemaining = i.daysRemaining; l.nextDueDate = i.nextDueDate;
+        l.loanStatus = i.loanStatus;
+        return l;
     }
 
-    private LoanInfo mapToLoanInfo(NuovoPayClient.DeviceInfo info) {
-        LoanInfo loan = new LoanInfo();
-        loan.customerName = info.customerName;
-        loan.customerId = info.customerId;
-        loan.deviceImei = info.deviceImei;
-        loan.deviceModel = info.deviceModel;
-        loan.loanAmount = info.loanAmount;
-        loan.amountPaid = info.amountPaid;
-        loan.amountDue = info.amountDue;
-        loan.loanDurationDays = info.loanDurationDays;
-        loan.daysRemaining = info.daysRemaining;
-        loan.nextDueDate = info.nextDueDate;
-        loan.loanStatus = info.loanStatus;
-        return loan;
-    }
-
-    @Override
-    public void onBackPressed() {}
+    @Override public void onBackPressed() {}
 }
