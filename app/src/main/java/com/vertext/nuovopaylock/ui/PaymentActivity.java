@@ -43,7 +43,8 @@ public class PaymentActivity extends AppCompatActivity {
     private EditText etPaymentAmount, etPhoneNumber;
     private Spinner spinnerPaymentMethod;
     private Button btnPayNow;
-    private LinearLayout layoutLoading, layoutContent, layoutSuccess;
+    private LinearLayout layoutLoading, layoutSuccess;
+    private android.widget.ScrollView layoutContent;
     private TextView tvLoadingMsg, tvSuccessMsg;
 
     private NuovoPayClient apiClient;
